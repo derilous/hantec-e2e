@@ -1,0 +1,23 @@
+{
+  "name": "hantec-e2e",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx mocha tests/**/*.spec.js --timeout 90000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "hantec-e2e"
+  },
+  "author": "Mohsin Habiya",
+  "license": "ISC",
+  "dependencies": {
+    "chromedriver": "^138.0.5",
+    "selenium-webdriver": "^4.34.0"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
+    "mocha": "11.7.1"
+  }
+}
