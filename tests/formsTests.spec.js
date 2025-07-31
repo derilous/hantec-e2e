@@ -17,7 +17,7 @@ const selectors = require('../utils/selectors');
 const { sleep } = require('../utils/helpers');
 const { waitForDebugger } = require('inspector');
 
-describe.skip('Live Registration Form Tests', () => {
+describe('Live Registration Form Tests', () => {
   it('Should not fill the form and try submitting it', async () => {
     const driver = await new Builder().forBrowser('chrome').build();
 
