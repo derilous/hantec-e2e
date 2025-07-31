@@ -104,7 +104,7 @@ describe('Live Registration Form Tests', () => {
 });
 
 describe('Demo Registration Form Tests', () => {
-  it('Should reject the form submission due to whitespace only in First Name', async () => {
+  it('Should reject the MT4 demo form submission due to whitespace input', async () => {
     const driver = await new Builder().forBrowser('chrome').build();
 
     try {
@@ -167,13 +167,21 @@ describe('Demo Registration Form Tests', () => {
     }
   });
 
-  it('Should be able to submit the form with correct input', async () => {
+  it('Should be able to submit the MT5 demo form with correct input', async () => {
+    // adding a wait here because the server does not respond immediately
+    await sleep(5000);
     const driver = await new Builder().forBrowser('chrome').build();
     try {
       await driver.get('https://hmarkets.com/mt-demo-account/');
 
       // Get rid of the cookie consent banner
       await dismissCookieBanner(driver, selectors, sleep);
+
+      // Click the "MT5" button by its text and class
+      const mt5Button = await driver.findElement(
+        By.xpath("//button[text()[contains(., 'MT5')]]")
+      );
+      await mt5Button.click();
 
       const user = generateUserData();
 
@@ -196,6 +204,8 @@ describe('Demo Registration Form Tests', () => {
       await depositOption.click();
       // Fill first and last name, email, country & phone, then submit
       await fillRegistrationForm(driver, selectors, user);
+
+      await sleep(2000);
 
       await submitForm(driver, selectors, sleep);
 

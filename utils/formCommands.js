@@ -30,12 +30,19 @@ async function fillRegistrationForm(driver, selectors, user) {
   );
   await firstNameInput.sendKeys(user.firstName);
 
+  await driver.sleep(500);
+
   const lastNameInput = await findFirstAvailableElement(
     driver,
     selectors.lastNameInputs
   );
   await lastNameInput.sendKeys(user.lastName);
+
+  await driver.sleep(500);
+
   await driver.findElement(selectors.emailInput).sendKeys(user.email);
+
+  await driver.sleep(500);
 
   const countrySelectElement = await driver.findElement(
     selectors.countrySelect
@@ -44,7 +51,12 @@ async function fillRegistrationForm(driver, selectors, user) {
   const countrySelect = new select(countrySelectElement);
   await countrySelect.selectByVisibleText('United Arab Emirates');
 
+  await driver.sleep(500);
+
   await driver.findElement(selectors.phoneInputWrapper).click();
+
+  await driver.sleep(500);
+
   await driver
     .findElement(selectors.phoneInputWrapper)
     .sendKeys('America', require('selenium-webdriver').Key.ENTER);
