@@ -1,11 +1,45 @@
-const { faker } = require('@faker-js/faker');
-const { Builder, By, Key, until } = require('selenium-webdriver');
-
+const { Builder, until } = require('selenium-webdriver');
 const assert = require('assert');
-const { styleText } = require('util');
 const select = require('selenium-webdriver').Select;
 
-describe('Live Registration Form', () => {
+const { generateUserData } = require('../utils/formData');
+const {
+  generateInvalidPassword,
+  generateValidPassword,
+} = require('../utils/passwordUtils');
+const selectors = require('../utils/selectors');
+const { sleep } = require('../utils/helpers');
+
+describe('Live Registration Form Tests', () => {
+  it('Should not fill the form and submit it', async () => {
+    const driver = await new Builder().forBrowser('chrome').build();
+
+    try {
+      await driver.get('https://hmarkets.com/live-account-pre-registration/');
+
+      // Get rid of the cookie consent banner
+      await driver.findElement(selectors.cookieButton).click();
+      await sleep(500);
+
+      await driver.findElement(selectors.submitButton).click();
+      // Assert that at least 3 elements with class 'text-hantec-primary' and text containing 'required' using xpath
+      const requiredElements = await driver.findElements(
+        require('selenium-webdriver').By.xpath(
+          "//*[contains(@class, 'text-hantec-primary') and contains(translate(text(), 'REQUIRED', 'required'), 'required')]"
+        )
+      );
+      assert(
+        requiredElements.length >= 3,
+        `Expected at least 3 elements with class 'text-hantec-primary' and text containing 'required', but found ${requiredElements.length}`
+      );
+    } catch (error) {
+      console.error('Test failed:', error);
+      throw error;
+    } finally {
+      await driver.quit();
+    }
+  });
+
   it('Should fill in the form correctly and submit it', async () => {
     const driver = await new Builder().forBrowser('chrome').build();
 
@@ -13,128 +47,61 @@ describe('Live Registration Form', () => {
       await driver.get('https://hmarkets.com/live-account-pre-registration/');
 
       // Get rid of the cookie consent banner
-      const cookieButton = await driver.findElement(
-        By.id('onetrust-accept-btn-handler')
+      await driver.findElement(selectors.cookieButton).click();
+      await sleep(500);
+
+      const user = generateUserData();
+
+      // Fill first and last name, email, and country
+      await driver
+        .findElement(selectors.firstNameInput)
+        .sendKeys(user.firstName);
+      await driver.findElement(selectors.lastNameInput).sendKeys(user.lastName);
+      await driver.findElement(selectors.emailInput).sendKeys(user.email);
+
+      const countrySelectElement = await driver.findElement(
+        selectors.countrySelect
       );
-      await cookieButton.click();
-      // Wait a moment for the overlay to disappear
-      await driver.sleep(500);
-
-      // Fill in First Name
-      await driver
-        .findElement(By.name('first_name'))
-        .sendKeys(faker.person.firstName());
-
-      // Fill in Last Name
-      await driver
-        .findElement(By.name('last_name'))
-        .sendKeys(faker.person.lastName());
-
-      // Fill in Email
-      await driver
-        .findElement(By.name('email'))
-        .sendKeys(faker.internet.email());
-
-      // Select Country
-      const countrySelectElement = await driver.findElement(By.name('country'));
       const countrySelect = new select(countrySelectElement);
       await countrySelect.selectByVisibleText('United Arab Emirates');
 
-      // Fill in Phone Number
+      await driver.findElement(selectors.phoneInputWrapper).click();
+      await driver.findElement(selectors.phoneInput).sendKeys(user.phone);
+
+      // Invalid password test
       await driver
-        .findElement(By.css('[id^="country-selector-MazPhoneNumberInput-"]'))
-        .click();
+        .findElement(selectors.passwordInput)
+        .sendKeys(generateInvalidPassword());
 
-      // Generate a UAE phone number without country code, starting with '415'
-      let rawPhone = faker.number.int({ min: 1111111, max: 9999999 });
-      let localPhone = '415' + rawPhone;
-
-      // Fill in the phone number input
-      await driver
-        .findElement(By.css('[id^="MazPhoneNumberInput-"]'))
-        .sendKeys(localPhone);
-
-      console.log(localPhone);
-
-      // Test if password check works
-      // Fill in incorrect Password
-      await driver
-        .findElement(
-          By.css(
-            'input[placeholder="Enter your password"][type="password"][name="password"]'
-          )
-        )
-        .sendKeys(faker.internet.password({ length: 6, memorable: true }));
-      // Assert that the "At least one number" requirement is not yet satisfied
-      const atLeastOneNumberLi = await driver.findElement(
-        By.xpath(
-          "//li[contains(@class, 'text-black') and contains(., 'At least one number')]"
-        )
+      const numberReq = await driver.findElement(
+        selectors.passwordNumberRequirement
       );
-      const isAtLeastOneNumberDisplayed =
-        await atLeastOneNumberLi.isDisplayed();
-      if (!isAtLeastOneNumberDisplayed) {
-        throw new Error('"At least one number" requirement is not visible');
-      }
-
-      // Now type a proper password that satisfies all requirements
-      const specialChars = '~!@#$%^&*[?+';
-      const getRandom = (chars) =>
-        chars[Math.floor(Math.random() * chars.length)];
-      const schars = getRandom(specialChars);
-      const newPassword = faker.internet.password({
-        length: 12,
-        pattern: /[a-zA-Z0-9]/,
-      });
-      let correctPassword = newPassword
-        .split('')
-        .sort(() => 0.5 - Math.random())
-        .join('');
-
-      const properPassword = schars + correctPassword;
-
-      const passwordInput = await driver.findElement(
-        By.css(
-          'input[placeholder="Enter your password"][type="password"][name="password"]'
-        )
+      assert(
+        await numberReq.isDisplayed(),
+        '"At least one number" requirement not visible'
       );
-      await passwordInput.clear();
-      await passwordInput.sendKeys(properPassword);
 
-      console.log(properPassword);
+      // Valid password
+      const validPassword = generateValidPassword();
+      await driver.findElement(selectors.passwordInput).clear();
+      await driver.findElement(selectors.passwordInput).sendKeys(validPassword);
 
-      // Wait for all 5 requirements to be satisfied (li.text-[#0FB2A5])
       await driver.wait(
-        async () => {
-          const greenLis = await driver.findElements(
-            By.css('li[class*="#0FB2A5"]')
-          );
-          return greenLis.length === 5;
-        },
+        async () =>
+          (await driver.findElements(selectors.greenRequirements)).length === 5,
         5000,
-        'Did not find 5 green requirement items after entering a valid password'
+        'Not all password criteria satisfied'
       );
 
-      // Click the checkbox using normal Selenium click (no JavaScript)
-      const checkbox = await driver.findElement(
-        By.css('div.flex.items-center input[type="checkbox"]')
-      );
-      await checkbox.click();
-      await driver.sleep(500);
+      await driver.findElement(selectors.checkbox).click();
+      await sleep(500);
 
-      // Submit the form
-      await driver;
-      const submitButton = await driver.findElement(
-        By.css('button.button.bg-hantec-primary[type="submit"]')
-      );
-      await submitButton.click();
+      await driver.findElement(selectors.submitButton).click();
 
-      // Wait for redirection
       await driver.wait(
         until.urlIs('https://portal-mu.hmarkets.com/en/#docs'),
         10000
       );
-
       console.log('Form submitted successfully!');
     } catch (error) {
       console.error('Test failed:', error);
