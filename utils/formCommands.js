@@ -44,15 +44,15 @@ async function fillRegistrationForm(driver, selectors, user) {
   const countrySelect = new select(countrySelectElement);
   await countrySelect.selectByVisibleText('United Arab Emirates');
 
-  await driver.findElement(selectors.phoneInputWrapper).click();
   // Try entering the phone number, and if "Invalid phone number" appears, try a new one
   const { By, until } = require('selenium-webdriver');
   let attempts = 0;
-  let maxAttempts = 2;
+  let maxAttempts = 3;
   let phoneValid = false;
   const generateUserData = require('./formData').generateUserData;
 
   while (!phoneValid && attempts < maxAttempts) {
+    await driver.findElement(selectors.phoneInput).click();
     await driver.findElement(selectors.phoneInput).clear();
     await driver.sleep(500);
     await driver.findElement(selectors.phoneInput).sendKeys(user.phone);
@@ -83,22 +83,22 @@ async function fillRegistrationForm(driver, selectors, user) {
   }
 }
 
-// Fill the registration form fields for demo form
-async function fillDemoRegistrationForm(driver, selectors, user) {
-  await driver.findElement(selectors.firstNameInput).sendKeys(user.firstName);
-  await driver.findElement(selectors.lastNameInput).sendKeys(user.lastName);
-  await driver.findElement(selectors.emailInput).sendKeys(user.email);
+// // Fill the registration form fields for demo form
+// async function fillDemoRegistrationForm(driver, selectors, user) {
+//   await driver.findElement(selectors.firstNameInput).sendKeys(user.firstName);
+//   await driver.findElement(selectors.lastNameInput).sendKeys(user.lastName);
+//   await driver.findElement(selectors.emailInput).sendKeys(user.email);
 
-  const countrySelectElement = await driver.findElement(
-    selectors.countrySelect
-  );
-  const select = require('selenium-webdriver').Select;
-  const countrySelect = new select(countrySelectElement);
-  await countrySelect.selectByVisibleText('United Arab Emirates');
+//   const countrySelectElement = await driver.findElement(
+//     selectors.countrySelect
+//   );
+//   const select = require('selenium-webdriver').Select;
+//   const countrySelect = new select(countrySelectElement);
+//   await countrySelect.selectByVisibleText('United Arab Emirates');
 
-  await driver.findElement(selectors.phoneInputWrapper).click();
-  await driver.findElement(selectors.phoneInput).sendKeys(user.phone);
-}
+//   await driver.findElement(selectors.phoneInputWrapper).click();
+//   await driver.findElement(selectors.phoneInput).sendKeys(user.phone);
+// }
 
 // Submit the form
 async function submitForm(driver, selectors, sleep) {
@@ -130,7 +130,7 @@ module.exports = {
   dismissCookieBanner,
   findFirstAvailableElement,
   fillRegistrationForm,
-  fillDemoRegistrationForm,
+  // fillDemoRegistrationForm,
   submitForm,
   setValidPasswordAndWait,
 };

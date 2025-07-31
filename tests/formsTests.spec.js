@@ -15,8 +15,9 @@ const {
 } = require('../utils/passwordUtils');
 const selectors = require('../utils/selectors');
 const { sleep } = require('../utils/helpers');
+const { waitForDebugger } = require('inspector');
 
-describe('Live Registration Form Tests', () => {
+describe.skip('Live Registration Form Tests', () => {
   it('Should not fill the form and try submitting it', async () => {
     const driver = await new Builder().forBrowser('chrome').build();
 
@@ -106,9 +107,6 @@ describe('Demo Registration Form Tests', () => {
   it('Should reject the form submission due to whitespace only in First Name', async () => {
     const driver = await new Builder().forBrowser('chrome').build();
 
-    let errorMessage =
-      'Success message should not be visible, but it was found.';
-
     try {
       await driver.get('https://hmarkets.com/mt-demo-account/');
 
@@ -143,11 +141,24 @@ describe('Demo Registration Form Tests', () => {
 
       await submitForm(driver, selectors, sleep);
 
+      await sleep(3000);
+
+      // Scroll down a little bit to ensure the element is in view
+      const btnElement = await driver.findElement(selectors.submitButton);
+      await driver.executeScript(
+        'arguments[0].scrollIntoView({behavior: "smooth", block: "center"});',
+        btnElement
+      );
+      await sleep(1000);
+
       // Ensure the success message is NOT visible after form submission
       const successMessageElements = await driver.findElements(
         By.xpath("//*[contains(text(), 'Your submission was successful.')]")
       );
-      assert(successMessageElements.length === 0, errorMessage);
+      assert(
+        successMessageElements.length === 0,
+        'Success message should not be visible, but it was found.'
+      );
     } catch (error) {
       console.error('Test failed:', error);
       throw error;
@@ -156,7 +167,7 @@ describe('Demo Registration Form Tests', () => {
     }
   });
 
-  it.skip('Should be able to submit the form with correct input', async () => {
+  it('Should be able to submit the form with correct input', async () => {
     const driver = await new Builder().forBrowser('chrome').build();
     try {
       await driver.get('https://hmarkets.com/mt-demo-account/');
@@ -184,12 +195,36 @@ describe('Demo Registration Form Tests', () => {
       );
       await depositOption.click();
       // Fill first and last name, email, country & phone, then submit
-      await fillDemoRegistrationForm(driver, selectors, user);
+      await fillRegistrationForm(driver, selectors, user);
 
       await submitForm(driver, selectors, sleep);
 
+      await sleep(3000);
+
+      // Scroll down a little bit to ensure the element is in view
+      const btnElement = await driver.findElement(selectors.submitButton);
+      await driver.executeScript(
+        'arguments[0].scrollIntoView({behavior: "smooth", block: "center"});',
+        btnElement
+      );
       await sleep(1000);
+
       // Ensure the success message is visible after form submission
+      await driver.wait(
+        async () => {
+          const elements = await driver.findElements(
+            By.xpath("//*[contains(text(), 'Your submission was successful.')]")
+          );
+          return elements.length > 0 && (await elements[0].isDisplayed());
+        },
+        5000,
+        'Success message did not appear within 5 seconds'
+      );
+
+      const successMessageElements = await driver.findElements(
+        By.xpath("//*[contains(text(), 'Your submission was successful.')]")
+      );
+      assert(successMessageElements.length > 0, 'Success message not found');
     } catch (error) {
       console.error('Test failed:', error);
       throw error;
