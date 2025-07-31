@@ -103,6 +103,10 @@ describe('Live Registration Form Tests', () => {
         10000
       );
       console.log('Form submitted successfully!');
+
+      // PS. Would be good to have an API call to
+      // 1. Check user is created, for quicker assertions.
+      // 2. User can be deleted, since we risk potentially flooding the live DB with fake users every time the tests run
     } catch (error) {
       console.error('Test failed:', error);
       throw error;
