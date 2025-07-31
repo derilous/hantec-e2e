@@ -47,7 +47,7 @@ async function fillRegistrationForm(driver, selectors, user) {
   await driver.findElement(selectors.phoneInputWrapper).click();
   await driver
     .findElement(selectors.phoneInputWrapper)
-    .sendKeys('+1', require('selenium-webdriver').Key.ENTER);
+    .sendKeys('America', require('selenium-webdriver').Key.ENTER);
   // Try entering the phone number, and if "Invalid phone number" appears, try a new one
   const { By, until } = require('selenium-webdriver');
   let attempts = 0;
