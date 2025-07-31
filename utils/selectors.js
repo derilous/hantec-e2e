@@ -3,8 +3,8 @@ const { By } = require('selenium-webdriver');
 // Storing selector values here for easy access
 module.exports = {
   cookieButton: By.id('onetrust-accept-btn-handler'),
-  firstNameInput: By.name('first_name'),
-  lastNameInput: By.name('last_name'),
+  firstNameInputs: [By.name('first_name'), By.name('firstName')],
+  lastNameInputs: [By.name('last_name'), By.name('lastName')],
   emailInput: By.name('email'),
   countrySelect: By.name('country'),
   phoneInputWrapper: By.css('[id^="country-selector-MazPhoneNumberInput-"]'),

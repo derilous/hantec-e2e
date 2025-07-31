@@ -15,6 +15,7 @@ function generateValidPassword() {
     .split('')
     .sort(() => 0.5 - Math.random())
     .join('');
+  console.log(schars + shuffled);
   return schars + shuffled;
 }
 

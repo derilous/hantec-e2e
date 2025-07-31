@@ -1,6 +1,12 @@
-const { Builder, until } = require('selenium-webdriver');
+const { Builder, By, until } = require('selenium-webdriver');
 const assert = require('assert');
 const select = require('selenium-webdriver').Select;
+const {
+  dismissCookieBanner,
+  fillRegistrationForm,
+  submitForm,
+  setValidPasswordAndWait,
+} = require('../utils/formCommands');
 
 const { generateUserData } = require('../utils/formData');
 const {
@@ -11,17 +17,19 @@ const selectors = require('../utils/selectors');
 const { sleep } = require('../utils/helpers');
 
 describe('Live Registration Form Tests', () => {
-  it('Should not fill the form and submit it', async () => {
+  it('Should not fill the form and try submitting it', async () => {
     const driver = await new Builder().forBrowser('chrome').build();
 
     try {
       await driver.get('https://hmarkets.com/live-account-pre-registration/');
 
       // Get rid of the cookie consent banner
-      await driver.findElement(selectors.cookieButton).click();
-      await sleep(500);
+      await dismissCookieBanner(driver, selectors, sleep);
 
-      await driver.findElement(selectors.submitButton).click();
+      // Try to submit an empty form
+      await submitForm(driver, selectors, sleep);
+      await sleep(1000);
+
       // Assert that at least 3 elements with class 'text-hantec-primary' and text containing 'required' using xpath
       const requiredElements = await driver.findElements(
         require('selenium-webdriver').By.xpath(
@@ -47,26 +55,12 @@ describe('Live Registration Form Tests', () => {
       await driver.get('https://hmarkets.com/live-account-pre-registration/');
 
       // Get rid of the cookie consent banner
-      await driver.findElement(selectors.cookieButton).click();
-      await sleep(500);
+      await dismissCookieBanner(driver, selectors, sleep);
 
       const user = generateUserData();
 
-      // Fill first and last name, email, and country
-      await driver
-        .findElement(selectors.firstNameInput)
-        .sendKeys(user.firstName);
-      await driver.findElement(selectors.lastNameInput).sendKeys(user.lastName);
-      await driver.findElement(selectors.emailInput).sendKeys(user.email);
-
-      const countrySelectElement = await driver.findElement(
-        selectors.countrySelect
-      );
-      const countrySelect = new select(countrySelectElement);
-      await countrySelect.selectByVisibleText('United Arab Emirates');
-
-      await driver.findElement(selectors.phoneInputWrapper).click();
-      await driver.findElement(selectors.phoneInput).sendKeys(user.phone);
+      // Fill first and last name, email, country & phone
+      await fillRegistrationForm(driver, selectors, user);
 
       // Invalid password test
       await driver
@@ -82,21 +76,13 @@ describe('Live Registration Form Tests', () => {
       );
 
       // Valid password
-      const validPassword = generateValidPassword();
-      await driver.findElement(selectors.passwordInput).clear();
-      await driver.findElement(selectors.passwordInput).sendKeys(validPassword);
-
-      await driver.wait(
-        async () =>
-          (await driver.findElements(selectors.greenRequirements)).length === 5,
-        5000,
-        'Not all password criteria satisfied'
+      const validPassword = await setValidPasswordAndWait(
+        driver,
+        selectors,
+        generateValidPassword
       );
 
-      await driver.findElement(selectors.checkbox).click();
-      await sleep(500);
-
-      await driver.findElement(selectors.submitButton).click();
+      await submitForm(driver, selectors);
 
       await driver.wait(
         until.urlIs('https://portal-mu.hmarkets.com/en/#docs'),
@@ -107,6 +93,103 @@ describe('Live Registration Form Tests', () => {
       // PS. Would be good to have an API call to
       // 1. Check user is created, for quicker assertions.
       // 2. User can be deleted, since we risk potentially flooding the live DB with fake users every time the tests run
+    } catch (error) {
+      console.error('Test failed:', error);
+      throw error;
+    } finally {
+      await driver.quit();
+    }
+  });
+});
+
+describe('Demo Registration Form Tests', () => {
+  it('Should reject the form submission due to whitespace only in First Name', async () => {
+    const driver = await new Builder().forBrowser('chrome').build();
+
+    let errorMessage =
+      'Success message should not be visible, but it was found.';
+
+    try {
+      await driver.get('https://hmarkets.com/mt-demo-account/');
+
+      // Get rid of the cookie consent banner
+      await dismissCookieBanner(driver, selectors, sleep);
+
+      const user = generateUserData();
+
+      // Select the leverage dropdown and choose an option
+      const leverageSelectElement = await driver.findElement(
+        By.name('leverage')
+      );
+      await leverageSelectElement.click();
+      const leverageOption = await driver.findElement(
+        By.css('select[name="leverage"] option[value="1:200"]')
+      );
+      await leverageOption.click();
+
+      // Select the deposit dropdown and choose an option
+      const depositSelectElement = await driver.findElement(By.name('deposit'));
+      await depositSelectElement.click();
+      const depositOption = await driver.findElement(
+        By.css('select[name="deposit"] option[value="3000"]')
+      );
+      await depositOption.click();
+
+      // Fill first and last name, email, country & phone, then submit
+      user.firstName = '          ';
+      await fillRegistrationForm(driver, selectors, user);
+
+      await sleep(1000);
+
+      await submitForm(driver, selectors, sleep);
+
+      // Ensure the success message is NOT visible after form submission
+      const successMessageElements = await driver.findElements(
+        By.xpath("//*[contains(text(), 'Your submission was successful.')]")
+      );
+      assert(successMessageElements.length === 0, errorMessage);
+    } catch (error) {
+      console.error('Test failed:', error);
+      throw error;
+    } finally {
+      await driver.quit();
+    }
+  });
+
+  it.skip('Should be able to submit the form with correct input', async () => {
+    const driver = await new Builder().forBrowser('chrome').build();
+    try {
+      await driver.get('https://hmarkets.com/mt-demo-account/');
+
+      // Get rid of the cookie consent banner
+      await dismissCookieBanner(driver, selectors, sleep);
+
+      const user = generateUserData();
+
+      // Select the leverage dropdown and choose an option
+      const leverageSelectElement = await driver.findElement(
+        By.name('leverage')
+      );
+      await leverageSelectElement.click();
+      const leverageOption = await driver.findElement(
+        By.css('select[name="leverage"] option[value="1:200"]')
+      );
+      await leverageOption.click();
+
+      // Select the deposit dropdown and choose an option
+      const depositSelectElement = await driver.findElement(By.name('deposit'));
+      await depositSelectElement.click();
+      const depositOption = await driver.findElement(
+        By.css('select[name="deposit"] option[value="3000"]')
+      );
+      await depositOption.click();
+      // Fill first and last name, email, country & phone, then submit
+      await fillDemoRegistrationForm(driver, selectors, user);
+
+      await submitForm(driver, selectors, sleep);
+
+      await sleep(1000);
+      // Ensure the success message is visible after form submission
     } catch (error) {
       console.error('Test failed:', error);
       throw error;
